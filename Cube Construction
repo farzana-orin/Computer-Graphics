@@ -1,0 +1,107 @@
+#include <GL/freeglut.h>
+#include<stdio.h>
+#include<iostream>
+// The header file used to evaluate the code - begin
+#include<opencv2/core/core.hpp>
+#include<opencv2/highgui/highgui.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+using namespace std;
+// The header file used to evaluate the code - end
+// Please add your code here
+/********** Begin ********/
+GLfloat points1[8][3] = {{1,1,-1}, {-1,1,-1}, {-1,1,1}, {1,1,1},{1,-1,1},{-1,-1,1},{-1,-1,-1},{1,-1,-1}};     //Memory point coordinates
+GLfloat Colors1[6][3] = {{0,1,0},{1,0.5,0},{1,0,0},{1,1,0},{0,0,1},{1,0,1}};                     //Memory color
+int vertice1[6][4] = {{0,1,2,3},{4,5,6,7},{3,2,5,4},{7,6,1,0},{2,1,6,5},{0,3,4,7}};              //Memory point - surface information
+/********** End **********/
+void InitGL(GLvoid)
+{
+    glShadeModel(GL_SMOOTH);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearDepth(1.0f);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_COLOR_MATERIAL);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+}
+void Create()                //Create cube function
+{
+    glBegin(GL_QUADS);	
+    for(int i=0;i<6;i++)
+    {
+        glColor3fv(Colors1[i]);
+        for(int j=0;j<4;j++)
+        {
+            int VtxId=vertice1[i][j];
+            glVertex3fv(points1[VtxId]);
+        }
+    }
+    glEnd();
+}
+void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();	     
+     
+    // Please add your code here
+    /********** Begin ********/
+    glPushMatrix();
+    gluLookAt(-2, 1.5, 2, 0, 0, 0, 0.0, 1.0, 0.0);     
+    /********** End **********/
+    Create(); 	              
+    glPopMatrix();
+    glutSwapBuffers();
+}
+void reshape(int width, int height)
+{
+    if (height == 0)
+    height = 1;
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(70.0f, 1.0f, 0.1f, 100.0f);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+int main(int argc, char *argv[])
+{
+
+	glutInit(&argc, argv);
+	glutInitWindowPosition(100, 100);
+	glutInitWindowSize(400, 400);
+	glutCreateWindow("Tetrahedral construction");
+    InitGL();
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutMainLoopEvent();     
+     
+    //The following is the evaluation code, which has nothing to do with the content of this experiment. Please do not modify it
+	GLubyte* pPixelData = (GLubyte*)malloc(400 * 400 * 3);
+    GLint viewport[4] = {0};    
+    glReadBuffer(GL_FRONT);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], GL_RGB, GL_UNSIGNED_BYTE, pPixelData);
+    cv::Mat img;
+    std::vector<cv::Mat> imgPlanes;
+    img.create(400, 400, CV_8UC3);
+    cv::split(img, imgPlanes);
+
+    for (int i = 0; i < 400; i++) {
+        unsigned char* plane0Ptr = imgPlanes[0].ptr<unsigned char>(i);
+        unsigned char* plane1Ptr = imgPlanes[1].ptr<unsigned char>(i);
+        unsigned char* plane2Ptr = imgPlanes[2].ptr<unsigned char>(i);
+        for (int j = 0; j < 400; j++) {
+            int k = 3 * (i * 400 + j);
+            plane2Ptr[j] = pPixelData[k];
+            plane1Ptr[j] = pPixelData[k + 1];
+            plane0Ptr[j] = pPixelData[k + 2];
+        }
+    }
+    cv::merge(imgPlanes, img);
+    cv::flip(img, img, 0);
+    cv::namedWindow("openglGrab");
+    cv::imshow("openglGrab", img);
+    cv::imwrite("../img_step3/test.jpg", img);
+    return 0;
+}

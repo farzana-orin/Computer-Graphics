@@ -1,0 +1,140 @@
+#include <GL/freeglut.h>
+#include<stdio.h>
+#include <iostream>
+// The header file used to evaluate the code - begin
+#include<opencv2/core/core.hpp>
+#include<opencv2/highgui/highgui.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+// The header file used to evaluate the code - end
+
+struct Vec2i
+{
+    int x, y;
+};
+
+
+//please use Scan-line Method to draw a triangle
+void triangle(Vec2i t0, Vec2i t1, Vec2i t2) {
+    // Please add your code here
+    /********** Begin ********/
+ if (t0.y>t1.y) std::swap(t0, t1); 
+ if (t0.y>t2.y) std::swap(t0, t2); 
+ if (t1.y>t2.y) std::swap(t1, t2); 
+ int total_height = t2.y-t0.y; 
+ //lower parts
+for (int y=t0.y; y<=t1.y; y++) { 
+     int segment_height = t1.y-t0.y+1;    //be careful with divisions by zero
+     float alpha = (float)(y-t0.y)/total_height;      //edge t0t2
+     float beta  = (float)(y-t0.y)/segment_height;    //edge t0t1 
+     Vec2i A,B;
+     A.y=B.y=y;
+     A.x = t0.x + (t2.x-t0.x)*alpha; 
+     B.x = t0.x + (t1.x-t0.x)*beta; 
+     if (A.x>B.x) std::swap(A.x, B.x); 
+     glColor3f(0.0f, 1.0f, 1.0f);
+     for (int x=A.x; x<=B.x; x++) { 
+         
+           glBegin(GL_POINTS);
+           glVertex2f(x, y);
+           glEnd(); //Please use OpenGL to complete it.
+         }
+
+     } 
+ 
+ //upper parts
+ for (int y=t1.y; y<=t2.y; y++) { 
+     int segment_height = t2.y-t1.y+1;    //be careful with divisions by zero
+     float alpha = (float)(y-t0.y)/total_height;      //edge t0t2
+     float beta  = (float)(y-t1.y)/segment_height;    //edge t2t1 
+     Vec2i A,B;
+     A.y=B.y=y;
+     A.x = t0.x+(t2.x-t0.x)*alpha;
+     B.x = t1.x+(t2.x-t1.x)*beta; 
+
+    //B.x = (t1.x-t0.x)*beta;
+     if (A.x>B.x) std::swap(A.x, B.x); 
+     glColor3f(0.0f, 1.0f, 1.0f);
+     for (int x=A.x; x<=B.x; x++) { 
+         
+           glBegin(GL_POINTS);
+           glVertex2f(x, y);
+           glEnd(); //Please use OpenGL to complete it.
+         }
+
+     } 
+ 
+
+
+    /********** End **********/
+}
+
+
+void myDisplay(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    // Please add your code here
+    /********** Begin ********/
+    //Write the coordinates of the three vertices of the triangle
+    Vec2i t0 = {125,50}, t1 = {300,200}, t2 = {200,350};
+    triangle( t0,  t1, t2);
+    /********** End **********/
+    glFlush();
+}
+void Init()
+{
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glShadeModel(GL_SMOOTH);
+}
+void myReshape(int w, int h)
+{
+    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
+}
+
+int main(int argc, char* argv[])
+{
+
+    glutInit(&argc, argv);
+    glutInitWindowPosition(100, 100);
+    glutInitWindowSize(400, 400);
+    glutCreateWindow("Hello circle!");
+    Init();
+    glutDisplayFunc(myDisplay);
+    glutReshapeFunc(myReshape);
+    glutMainLoopEvent();
+
+
+    //The following is the evaluation code, which has nothing to do with the content of this experiment. Please do not modify it//
+    GLubyte* pPixelData = (GLubyte*)malloc(400 * 400 * 3);
+    GLint viewport[4] = { 0 };
+    glReadBuffer(GL_FRONT);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], GL_RGB, GL_UNSIGNED_BYTE, pPixelData);
+
+    cv::Mat img;
+    std::vector<cv::Mat> imgPlanes;
+    img.create(400, 400, CV_8UC3);
+    cv::split(img, imgPlanes);
+
+    for (int i = 0; i < 400; i++) {
+        unsigned char* plane0Ptr = imgPlanes[0].ptr<unsigned char>(i);
+        unsigned char* plane1Ptr = imgPlanes[1].ptr<unsigned char>(i);
+        unsigned char* plane2Ptr = imgPlanes[2].ptr<unsigned char>(i);
+        for (int j = 0; j < 400; j++) {
+            int k = 3 * (i * 400 + j);
+            plane2Ptr[j] = pPixelData[k];
+            plane1Ptr[j] = pPixelData[k + 1];
+            plane0Ptr[j] = pPixelData[k + 2];
+        }
+    }
+    cv::merge(imgPlanes, img);
+    cv::flip(img, img, 0);
+    cv::namedWindow("openglGrab");
+    cv::imshow("openglGrab", img);
+
+    cv::imwrite("../img_step3/test.jpg", img);
+    return 0;
+}

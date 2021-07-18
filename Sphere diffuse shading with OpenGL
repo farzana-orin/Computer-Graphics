@@ -1,0 +1,153 @@
+#include <GL/freeglut.h>
+#include<stdlib.h>
+// The header file used to evaluate the code - begin
+#include<opencv2/core/core.hpp>
+#include<opencv2/highgui/highgui.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+using namespace std;
+// The header file used to evaluate the code - end
+
+void init(void)
+{
+	GLfloat position[] = {0.0,3.0,2.0,0.0};
+	GLfloat ambient[]={0.0,0.0,0.0,1.0};
+    GLfloat diffuse[]={1.0,1.0,1.0,1.0};
+    GLfloat specular[]={1.0,1.0,1.0,1.0};
+    GLfloat lmodel_ambient[]={0.4,0.4,0.4,1.0};
+    GLfloat local_view[]={0.0};
+
+    glClearColor(0.0, 0.1, 0.1,0.0); 
+    glShadeModel(GL_SMOOTH);
+    
+    // Add light
+    glLightfv(GL_LIGHT0,GL_AMBIENT,ambient);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuse);
+    glLightfv(GL_LIGHT0,GL_POSITION,position);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT,lmodel_ambient);
+    glLightModelfv(GL_LIGHT_MODEL_LOCAL_VIEWER,local_view);
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_DEPTH_TEST);
+
+}
+
+void display(void)
+{
+   GLfloat no_mat[]={0.0,0.0,0.0,1.0};                     //There is no light
+   GLfloat mat_ambient[]={0.7,0.7,0.7,1.0};                //ambient light
+   GLfloat mat_ambient_color[]={0.8, 0.8, 0.2, 1.0};       //colorful ambient light 
+   GLfloat mat_diffuse[]={0.1,0.5,0.8,1.0};                //diffuse reflection
+   GLfloat mat_specular[]={1.0,1.0,1.0,1.0};               //specular reflection
+   GLfloat no_shininess[] = {0.0};                         //no diffuse reflection
+   GLfloat low_shininess[]={5.0};                          //low specular reflection
+   GLfloat high_shininess[]={100.0};                       //high specular reflection
+   GLfloat mat_emission[]={0.3,0.2,0.2,0.0};               //materal emission 
+
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glPushMatrix();
+    glTranslatef(-3.0, 0.0, 0.0);
+    //The left sphere has only diffuse reflection
+    /********** Begin ********/
+    glMaterialfv(GL_FRONT, GL_AMBIENT,no_mat);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
+    glMaterialfv(GL_FRONT, GL_SHININESS, no_shininess);
+    glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
+    /********** End *********/
+	glutSolidSphere(1.0, 50, 50);  
+    glPopMatrix();
+
+	glPushMatrix();
+    // Please add the code here
+    // The middle sphere has ambient light and diffuse reflection
+    /********** Begin ********/     
+    glMaterialfv(GL_FRONT, GL_AMBIENT,mat_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
+    glMaterialfv(GL_FRONT, GL_SHININESS, no_shininess);
+    glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
+
+    /********** End *********/
+	glutSolidSphere(1.0, 50, 50);  
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(3.0, 0.0, 0.0);
+    // Please add the code here
+    // The right sphere has colorful ambient light and diffuse reflection.
+    /********** Begin ********/
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT,mat_ambient_color);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
+    glMaterialfv(GL_FRONT, GL_SHININESS, no_shininess);
+    glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
+
+    /********** End *********/
+	glutSolidSphere(1.0, 50, 50);  
+    glPopMatrix();
+
+	glFlush();
+	glutPostRedisplay();
+}
+
+void reshape(int w, int h)
+{
+	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(60.0, (GLfloat)w / (GLfloat)h, 1.0, 20.0);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(0.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+}
+
+
+
+
+
+int main(int argc, char *argv[])
+{
+
+	glutInit(&argc, argv);
+	glutInitWindowPosition(100, 100);
+	glutInitWindowSize(800, 600);
+	glutCreateWindow("Sphere diffuse shading with OpenGL");
+    init();
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutMainLoopEvent();     
+     
+     //The following is the evaluation code, which has nothing to do with the content of this experiment. Please do not modify it
+ 	GLubyte* pPixelData = (GLubyte*)malloc(800 * 600 * 3);
+    GLint viewport[4] = {0};
+    glReadBuffer(GL_FRONT);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], GL_RGB, GL_UNSIGNED_BYTE, pPixelData);
+    cv::Mat img;
+    std::vector<cv::Mat> imgPlanes;
+    img.create(600, 800, CV_8UC3);
+    cv::split(img, imgPlanes);
+
+    for (int i = 0; i < 600; i++) {
+        unsigned char* plane0Ptr = imgPlanes[0].ptr<unsigned char>(i);
+        unsigned char* plane1Ptr = imgPlanes[1].ptr<unsigned char>(i);
+        unsigned char* plane2Ptr = imgPlanes[2].ptr<unsigned char>(i);
+        for (int j = 0; j < 800; j++) {
+            int k = 3 * (i * 800 + j);
+            plane2Ptr[j] = pPixelData[k];
+            plane1Ptr[j] = pPixelData[k + 1];
+            plane0Ptr[j] = pPixelData[k + 2];
+        }
+    }
+    cv::merge(imgPlanes, img);
+    cv::flip(img, img, 0);
+    cv::namedWindow("openglGrab");
+    cv::imshow("openglGrab", img);
+    //cv::waitKey();
+    cv::imwrite("../img_step3/test.jpg", img);
+    return 0;
+}

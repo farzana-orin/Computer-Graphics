@@ -1,0 +1,171 @@
+#include <GL/freeglut.h>
+#include<stdio.h>
+#include <iostream>
+#include <algorithm>
+using namespace std;
+// The header file used to evaluate the code - begin
+#include<opencv2/core/core.hpp>
+#include<opencv2/highgui/highgui.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+// The header file used to evaluate the code - end
+
+//Define the x and y coordinates of a point
+struct Vec2i
+{
+    int x, y;
+};
+
+//Cross product 
+float CrossProduct(Vec2i a,Vec2i b)
+{
+    return a.x * b.y - b.x * a.y;
+}
+//DotProduct
+float DotProduct(float cp1,float cp2)
+{
+    return cp1*cp2;
+}
+
+//Determine if P1 and P2 are on the same side
+bool SameSide( Vec2i p1,Vec2i p2, Vec2i a, Vec2i b )
+{
+    // Please add your code here
+    /********** Begin ********/
+  
+    Vec2i i,j,k;
+    i.x=b.x-a.x;
+    i.y=b.y-a.y;
+    j.x=p1.x-a.x;
+    j.y=p1.y-a.y;
+    k.x=p2.x-a.x;
+    k.y=p2.y-a.y;
+    float cp1 = CrossProduct(i, j),
+          cp2 = CrossProduct(i, k);
+    if (DotProduct(cp1, cp2) >= 0)
+        return true;
+    else 
+        return false;
+    /********** End **********/
+}
+
+
+//Determine the point p coordinates are in the triangle abc
+float PointInTriangle(Vec2i p,Vec2i a, Vec2i b, Vec2i c)
+{
+    // Please add your code here
+    /********** Begin ********/
+   
+    if (SameSide(p,a, b,c) && SameSide(p,b, a,c) && SameSide(p,c, a,b) )
+        return true;
+    else 
+        return false;
+    /********** End **********/
+}
+
+
+
+// Please draw point to make a triangle in bounding box
+void boundingbox(Vec2i t0, Vec2i t1, Vec2i t2)
+{
+    // Please add your code here
+    /********** Begin ********/
+  if (t0.y > t1.y) std::swap(t0, t1);
+    if (t0.y > t2.y) std::swap(t0, t2);
+    if (t1.y > t2.y) std::swap(t1, t2);
+    // bounding box
+    int maxy = t2.y,
+        miny = t0.y,
+        a = max( t0.x ,t1.x),
+        maxx = max( a ,t2.x),
+        b = min( t0.x ,t1.x),
+        minx = min( b, t2.x);
+    glColor3f(0.0f, 1.0f, 1.0f);
+    for (int i = minx; i <= maxx; i++)
+    {
+        for (int j = miny; j <= maxy; j++)
+        {
+            Vec2i p;
+            p.x=i;
+            p.y=j;
+            if (PointInTriangle(p , t0 , t1 , t2)==true)
+            {
+                glBegin(GL_POINTS);
+                glVertex2f(i, j);
+                glEnd();
+            }
+        }
+    }
+
+    /********** End **********/
+
+}
+
+
+void myDisplay(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    // Please add your code here
+    /********** Begin ********/
+    //Write the coordinates of the three vertices of the triangle
+    Vec2i t0 = {50,150}, t1 = {300,50}, t2 = {200,350};
+    boundingbox(t0, t1, t2);
+    /********** End **********/
+    glFlush();
+}
+
+void Init()
+{
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glShadeModel(GL_SMOOTH);
+}
+void myReshape(int w, int h)
+{
+    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
+}
+
+int main(int argc, char* argv[])
+{
+
+    glutInit(&argc, argv);
+    glutInitWindowPosition(100, 100);
+    glutInitWindowSize(400, 400);
+    glutCreateWindow("Hello triangle!");
+    Init();
+    glutDisplayFunc(myDisplay);
+    glutReshapeFunc(myReshape);
+    glutMainLoopEvent();
+
+    //The following is the evaluation code, which has nothing to do with the content of this experiment. Please do not modify it//
+    GLubyte* pPixelData = (GLubyte*)malloc(400 * 400 * 3);
+    GLint viewport[4] = { 0 };
+    glReadBuffer(GL_FRONT);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], GL_RGB, GL_UNSIGNED_BYTE, pPixelData);
+
+    cv::Mat img;
+    std::vector<cv::Mat> imgPlanes;
+    img.create(400, 400, CV_8UC3);
+    cv::split(img, imgPlanes);
+
+    for (int i = 0; i < 400; i++) {
+        unsigned char* plane0Ptr = imgPlanes[0].ptr<unsigned char>(i);
+        unsigned char* plane1Ptr = imgPlanes[1].ptr<unsigned char>(i);
+        unsigned char* plane2Ptr = imgPlanes[2].ptr<unsigned char>(i);
+        for (int j = 0; j < 400; j++) {
+            int k = 3 * (i * 400 + j);
+            plane2Ptr[j] = pPixelData[k];
+            plane1Ptr[j] = pPixelData[k + 1];
+            plane0Ptr[j] = pPixelData[k + 2];
+        }
+    }
+    cv::merge(imgPlanes, img);
+    cv::flip(img, img, 0);
+    cv::namedWindow("openglGrab");
+    cv::imshow("openglGrab", img);
+    cv::imwrite("../img_step4/test.jpg", img);
+    return 0;
+}

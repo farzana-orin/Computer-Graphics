@@ -1,0 +1,113 @@
+#include <GL/freeglut.h>
+#include<stdio.h>
+
+// The header file used to evaluate the code - begin
+#include<opencv2/core/core.hpp>
+#include<opencv2/highgui/highgui.hpp>
+#include<opencv2/imgproc/imgproc.hpp>
+// The header file used to evaluate the code - end
+
+GLint winWidth = 400, winHeight =400 ; 	      //Sets the initialization window size
+
+/*glFrustum function parameter*/
+GLfloat left = -1.2, bottom = -1.2, right = 1.2, top = 1.2;     //Sets the clipping window coordinate range
+GLfloat zNear = 2.0, zFar = 25.0;	                                //Sets the depth range of far and near cutting surfaces
+
+void init(void)
+{
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+}
+
+void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    glLoadIdentity();
+    /* Observe the coordinate system parameter Settings  */
+    gluLookAt(0, 0, 5,  0, 0, 0,  0, 1.0, 0);         //Specify 3D viewing parameters
+  
+    glPushMatrix();
+    glColor3f(1.0, 0.0, 0.0);      //Set the  color to red
+    glutWireCube(1.0);             //Draws a unit cube wireframe
+    glPopMatrix();
+    glPushMatrix();
+    glColor3f(0.0, 1.0, 0.0);     //Set the  color to green
+    glRotatef(30,1,0,0);
+    glTranslatef(2.0f, 0.0f, 0.0f);
+    glutWireCube(1.0);            //Draws a unit cube wireframe
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(-2.0f, 0.0f, 0.0f);
+    glColor3f(0.0, 0.0, 1.0);      //Set the  color to blue
+    glutSolidCube(1.0);            //Draws a unit solid cube 
+    glPopMatrix();
+
+    glFlush();
+}
+
+void reshape(GLint newWidth, GLint newHeight)
+{
+    /*viewport transform */
+    glViewport(0, 0, newWidth, newHeight);	//Sets the initialization window size
+
+    /*projection transformation*/
+    glMatrixMode(GL_PROJECTION);
+
+    glLoadIdentity();
+
+    /*Perspective projection, sets the perspective viewer*/
+	glFrustum(left, right, bottom,top , zNear, zFar);
+
+    /*model transformation*/
+    glMatrixMode(GL_MODELVIEW);
+    
+    winWidth = newWidth;
+    winHeight = newHeight;
+}
+int main(int argc, char* argv[])
+{
+
+    glutInit(&argc, argv);
+    glutInitWindowPosition(100, 100);
+    glutInitWindowSize( 400 , 400 );        
+    glutCreateWindow("Modeling Transformation");
+    init();
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutMainLoopEvent();
+
+
+
+
+
+
+    //The following is the evaluation code, which has nothing to do with the content of this experiment. Please do not modify it
+    GLubyte* pPixelData = (GLubyte*)malloc(800 * 400 * 3);
+    GLint viewport[4] = { 0 };
+    glReadBuffer(GL_FRONT);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], GL_RGB, GL_UNSIGNED_BYTE, pPixelData);
+    cv::Mat img;
+    std::vector<cv::Mat> imgPlanes;
+    img.create(400, 400, CV_8UC3);
+    cv::split(img, imgPlanes);
+
+    for (int i = 0; i < 400; i++) {
+        unsigned char* plane0Ptr = imgPlanes[0].ptr<unsigned char>(i);
+        unsigned char* plane1Ptr = imgPlanes[1].ptr<unsigned char>(i);
+        unsigned char* plane2Ptr = imgPlanes[2].ptr<unsigned char>(i);
+        for (int j = 0; j < 400; j++) {
+            int k = 3 * (i * 400 + j);
+            plane2Ptr[j] = pPixelData[k];
+            plane1Ptr[j] = pPixelData[k + 1];
+            plane0Ptr[j] = pPixelData[k + 2];
+        }
+    }
+    cv::merge(imgPlanes, img);
+    cv::flip(img, img, 0);
+    cv::namedWindow("openglGrab");
+    cv::imshow("openglGrab", img);
+    //cv::waitKey();
+    cv::imwrite("../img_step2/test.jpg", img);
+    return 0;
+}
